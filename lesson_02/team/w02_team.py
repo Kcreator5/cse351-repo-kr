@@ -1,7 +1,7 @@
 """
 Course: CSE 351 
 Lesson: L02 team activity
-File:   prove.py
+File:   team.py
 Author: <Add name here>
 
 Purpose: Retrieve Star Wars details from a server
@@ -52,8 +52,6 @@ def get_urls(film6, kind):
         item = get_data_from_server(url)
         print(f'  - {item['name']}')
 
-
-
 def main():
     global call_count
 
@@ -76,14 +74,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# added
-class MyThread(threading.Thread):
-    def __init__(self, name, value):
-        threading.Thread.__init__(self)
-        self.name = name
-        self.value = Value
-        self.results = None
-    def run(self):
-        # code to be executed in the thread
-        print(f"Thread {self.name}" with value = {self.value})
