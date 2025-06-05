@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from cse351 import *
+ # print("Current working directory:", os.getcwd())  # trebleshooting 
 
 # Folders
 INPUT_FOLDER = "faces"
