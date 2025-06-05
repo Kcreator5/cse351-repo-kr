@@ -119,34 +119,54 @@ def run_image_processing_pipeline():
     def smooth_worker():
         while True:
             filename = queue_smooth.get()
-            if filename is None: break
-            path = os.path.join(INPUT_FOLDER, filename)
-            image = cv2.imread(path)
-            if image is None:
+            try:
+                if filename is None:
+                    break
+                path = os.path.join(INPUT_FOLDER, filename)
+                image = cv2.imread(path)
+                if image is None:
+                    print(f"[Smooth] Couldn't load: {filename}")
+                    continue
+                result = cv2.GaussianBlur(image, (5, 5), 0)
+                queue_gray.put((filename, result))
+                print(f"[Smooth] Processed: {filename}")
+            except Exception as e:
+                print(f"[Smooth] Error with {filename}: {e}")
+            finally:
                 queue_smooth.task_done()
-                continue
-            result = cv2.GaussianBlur(image, (5, 5), 0)
-            queue_gray.put((filename, result))
-            queue_smooth.task_done()
+
 
     def grayscale_worker():
         while True:
             item = queue_gray.get()
-            if item is None: break
-            filename, image = item
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            queue_edges.put((filename, gray))
-            queue_gray.task_done()
+            try:
+                if item is None:
+                    break
+                filename, image = item
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                queue_edges.put((filename, gray))
+                print(f"[Gray] Converted: {filename}")
+            except Exception as e:
+                print(f"[Gray] Error with {filename}: {e}")
+            finally:
+                queue_gray.task_done()
 
     def edge_worker():
         while True:
             item = queue_edges.get()
-            if item is None: break
-            filename, image = item
-            edges = cv2.Canny(image, 75, 155)
-            out_path = os.path.join(STEP3_OUTPUT_FOLDER, filename)
-            cv2.imwrite(out_path, edges)
-            queue_edges.task_done()
+            try:
+                if item is None:
+                    break
+                filename, image = item
+                edges = cv2.Canny(image, 75, 155)
+                out_path = os.path.join(STEP3_OUTPUT_FOLDER, filename)
+                cv2.imwrite(out_path, edges)
+                print(f"[Edge] Saved: {filename}")
+            except Exception as e:
+                print(f"[Edge] Error with {filename}: {e}")
+            finally:
+                queue_edges.task_done()
+
     
     # Create output folders
     for folder in [STEP1_OUTPUT_FOLDER, STEP2_OUTPUT_FOLDER, STEP3_OUTPUT_FOLDER]:
