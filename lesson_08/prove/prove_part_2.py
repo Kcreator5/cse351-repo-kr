@@ -88,8 +88,6 @@ def solve_find_end(maze):
     stop = False
 
 
-
-
 def find_end(log, filename, delay):
     """ Do not change this function """
 
