@@ -1,7 +1,7 @@
 """
 Course: CSE 351
 Assignment: 06
-Author: [Kevin Rogers]
+Author: [Your Name]
 
 Instructions:
 
@@ -13,13 +13,8 @@ import multiprocessing as mp
 import os
 import cv2
 import numpy as np
+
 from cse351 import *
- # print("Current working directory:", os.getcwd())  # trebleshooting 
-import threading
-import queue
-import os
-import cv2
-import numpy as np
 
 # Folders
 INPUT_FOLDER = "faces"
@@ -35,10 +30,11 @@ CANNY_THRESHOLD2 = 155
 # Allowed image extensions
 ALLOWED_EXTENSIONS = ['.jpg']
 
-
-
-# workers. 
-
+# ---------------------------------------------------------------------------
+def create_folder_if_not_exists(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"Created folder: {folder_path}")
 
 # ---------------------------------------------------------------------------
 def task_convert_to_grayscale(image):
@@ -111,105 +107,23 @@ def run_image_processing_pipeline():
 
     # TODO
     # - create queues
-    queue_smooth = queue.Queue()
-    queue_gray = queue.Queue()
-    queue_edges = queue.Queue()
     # - create barriers
     # - create the three processes groups
-    def smooth_worker():
-        while True:
-            filename = queue_smooth.get()
-            try:
-                if filename is None:
-                    break
-                path = os.path.join(INPUT_FOLDER, filename)
-                image = cv2.imread(path)
-                if image is None:
-                    print(f"[Smooth] Couldn't load: {filename}")
-                    continue
-                result = cv2.GaussianBlur(image, (5, 5), 0)
-                queue_gray.put((filename, result))
-                print(f"[Smooth] Processed: {filename}")
-            except Exception as e:
-                print(f"[Smooth] Error with {filename}: {e}")
-            finally:
-                queue_smooth.task_done()
-
-
-    def grayscale_worker():
-        while True:
-            item = queue_gray.get()
-            try:
-                if item is None:
-                    break
-                filename, image = item
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                queue_edges.put((filename, gray))
-                print(f"[Gray] Converted: {filename}")
-            except Exception as e:
-                print(f"[Gray] Error with {filename}: {e}")
-            finally:
-                queue_gray.task_done()
-
-    def edge_worker():
-        while True:
-            item = queue_edges.get()
-            try:
-                if item is None:
-                    break
-                filename, image = item
-                edges = cv2.Canny(image, 75, 155)
-                out_path = os.path.join(STEP3_OUTPUT_FOLDER, filename)
-                cv2.imwrite(out_path, edges)
-                print(f"[Edge] Saved: {filename}")
-            except Exception as e:
-                print(f"[Edge] Error with {filename}: {e}")
-            finally:
-                queue_edges.task_done()
-
-    
-    # Create output folders
-    for folder in [STEP1_OUTPUT_FOLDER, STEP2_OUTPUT_FOLDER, STEP3_OUTPUT_FOLDER]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-    # Start threads
-    for _ in range(4): threading.Thread(target=smooth_worker, daemon=True).start()
-    for _ in range(4): threading.Thread(target=grayscale_worker, daemon=True).start()
-    for _ in range(4): threading.Thread(target=edge_worker, daemon=True).start()
-
-    # Enqueue all filenames to the first queue
-    for file in os.listdir(INPUT_FOLDER):
-        if file.lower().endswith(".jpg"):
-            queue_smooth.put(file)
-
-    # Wait for smoothers to finish
-    queue_smooth.join()
-    for _ in range(4): queue_gray.put(None)
-
-    # Wait for grayscale to finish
-    queue_gray.join()
-    for _ in range(4): queue_edges.put(None)
-
-    # Wait for edge detection to finish
-    queue_edges.join()
-
-    print("Pipeline completed.")
-
-# ---------------------------------------------------------------------------
-def create_folder_if_not_exists(folder_path):
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-        print(f"Created folder: {folder_path}")
     # - you are free to change anything in the program as long as you
     #   do all requirements.
 
-   # Create output folders
-    for folder in [STEP1_OUTPUT_FOLDER, STEP2_OUTPUT_FOLDER, STEP3_OUTPUT_FOLDER]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
+    # --- Step 1: Smooth Images ---
+    process_images_in_folder(INPUT_FOLDER, STEP1_OUTPUT_FOLDER, task_smooth_image,
+                             processing_args=(GAUSSIAN_BLUR_KERNEL_SIZE,))
 
-    
+    # --- Step 2: Convert to Grayscale ---
+    process_images_in_folder(STEP1_OUTPUT_FOLDER, STEP2_OUTPUT_FOLDER, task_convert_to_grayscale)
+
+    # --- Step 3: Detect Edges ---
+    process_images_in_folder(STEP2_OUTPUT_FOLDER, STEP3_OUTPUT_FOLDER, task_detect_edges,
+                             load_args=cv2.IMREAD_GRAYSCALE,        
+                             processing_args=(CANNY_THRESHOLD1, CANNY_THRESHOLD2))
+
     print("\nImage processing pipeline finished!")
     print(f"Original images are in: '{INPUT_FOLDER}'")
     print(f"Grayscale images are in: '{STEP1_OUTPUT_FOLDER}'")
