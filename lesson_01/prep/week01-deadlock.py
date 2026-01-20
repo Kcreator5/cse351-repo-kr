@@ -1,7 +1,6 @@
 import threading
 import time
 
-# teasting connection
 
 lock1 = threading.Lock()
 lock2 = threading.Lock()
