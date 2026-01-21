@@ -1,7 +1,7 @@
 """
 Course    : CSE 351
 Assignment: 02
-Student   : <your name here>
+Student   : Kevin Rogers
 
 Instructions:
     - review instructions in the course
@@ -13,8 +13,8 @@ import random
 import threading
 from money import *
 from cse351 import *
-import sys
-sys.stdout.reconfigure(line_buffering=True)
+# import sys
+# sys.stdout.reconfigure(line_buffering=True)
 
 # ---------------------------------------------------------------------------
 def main(): 
