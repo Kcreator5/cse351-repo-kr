@@ -219,3 +219,4 @@ class Money:
                 self.digits = b_sign + diff if b_sign == '-' else diff
 
         self.__fix_zero()
+
