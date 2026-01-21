@@ -13,6 +13,8 @@ import random
 import threading
 from money import *
 from cse351 import *
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 # ---------------------------------------------------------------------------
 def main(): 
@@ -31,7 +33,20 @@ def main():
 
     bank = Bank()
 
-    # TODO - Add a ATM_Reader for each data file
+    # TODO -     
+    
+    threads = []
+
+    for filename in data_files:
+        reader = ATM_Reader(filename, bank)
+        threads.append(reader)
+        reader.start()
+
+    for t in threads:
+        t.join()
+        print("thread joined")
+
+
 
     test_balances(bank)
 
@@ -39,19 +54,97 @@ def main():
 
 
 # ===========================================================================
-class ATM_Reader():
+class ATM_Reader(threading.Thread):
+    def __init__(self, filename, bank):
+        super().__init__()
+        self.filename = filename
+        self.bank = bank
+
+
+
+    def run(self):
+        print(f'Starting {self.filename}', flush=True)
+
+        local_changes = {}
+
+        with open(self.filename, 'r') as file:
+            for line in file:
+                line = line.strip()
+
+                if not line or line.startswith('#'):
+                    continue
+
+                account_num, trans_type, amount = line.split(',')
+                account_num = int(account_num)
+                money = Money(amount)
+
+                if account_num not in local_changes:
+                    local_changes[account_num] = Money('0.00')
+
+                if trans_type == 'd':
+                    local_changes[account_num].add(money)
+                elif trans_type == 'w':
+                    local_changes[account_num].sub(money)
+
+        for account_num, net_amount in local_changes.items():
+            if net_amount.digits.startswith('-'):
+                self.bank.withdraw(account_num, Money(net_amount.digits[1:]))
+            else:
+                self.bank.deposit(account_num, net_amount)
+
+        print(f'Finished {self.filename}', flush=True)
+
+
     # TODO - implement this class here
     ...
 
 
 # ===========================================================================
 class Account():
+    def __init__(self):
+        self.balance = Money('0.00')
+        self.lock = threading.Lock()
+
+    def deposit(self, amount):
+        with self.lock:
+            self.balance.add(amount)
+
+    def withdraw(self, amount):
+        with self.lock:
+            self.balance.sub(amount)
+
+    def get_balance(self):
+        return self.balance
+    
+
     # TODO - implement this class here
     ...
 
 
 # ===========================================================================
 class Bank():
+    def __init__(self):
+        self.accounts = {}
+        self.lock = threading.Lock()
+
+    def get_account(self, account_number):
+        with self.lock:
+            if account_number not in self.accounts:
+                self.accounts[account_number] = Account()
+            return self.accounts[account_number]
+
+    def deposit(self, account_number, amount):
+        account = self.get_account(account_number)
+        account.deposit(amount)
+
+    def withdraw(self, account_number, amount):
+        account = self.get_account(account_number)
+        account.withdraw(amount)
+
+    def get_balance(self, account_number):
+        account = self.get_account(account_number)
+        return account.get_balance()
+    
     # TODO - implement this class here
     ...
 
