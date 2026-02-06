@@ -1,7 +1,7 @@
 """
 Course    : CSE 351
 Assignment: 04
-Student   : <your name here>
+Student   : Kevin Rogers
 
 Instructions:
     - review instructions in the course
@@ -19,10 +19,11 @@ recno: record number starting from 0
 
 import time
 from common import *
-
+import queue
+import threading
 from cse351 import *
 
-THREADS = 0                 # TODO - set for your program
+THREADS = 3                 # TODO - set for your program
 WORKERS = 10
 RECORDS_TO_RETRIEVE = 5000  # Don't change
 
@@ -30,7 +31,9 @@ RECORDS_TO_RETRIEVE = 5000  # Don't change
 # ---------------------------------------------------------------------------
 def retrieve_weather_data():
     # TODO - fill out this thread function (and arguments)
-    ...
+    threading.Thread(target=retrieve_weather_data, args=())
+    retrieve_weather_data(cmd_q, data_q)
+    
 
 
 # ---------------------------------------------------------------------------
@@ -104,8 +107,10 @@ def main():
     records = RECORDS_TO_RETRIEVE
 
     # TODO - Create any queues, pipes, locks, barriers you need
-
-
+    q = queue.Queue()
+    cmd_q = queue.Queue(maxsize=10)
+    data_q = queue.Queue(maxsize=10)
+    
 
 
     # End server - don't change below

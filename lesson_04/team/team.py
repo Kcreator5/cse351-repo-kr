@@ -93,6 +93,5 @@ def main():
     print(f"Found {primes} primes. Must be 108 found.")
 
 
-
 if __name__ == '__main__':
     main()
