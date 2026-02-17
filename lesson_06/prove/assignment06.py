@@ -1,7 +1,7 @@
 """
 Course: CSE 351
 Assignment: 06
-Author: [Your Name]
+Author: [Kevin Rogers]
 
 Instructions:
 
@@ -13,7 +13,7 @@ import multiprocessing as mp
 import os
 import cv2
 import numpy as np
-
+from collections import deque
 from cse351 import *
 
 # Folders
@@ -111,6 +111,8 @@ def run_image_processing_pipeline():
     # - create the three processes groups
     # - you are free to change anything in the program as long as you
     #   do all requirements.
+
+    # queue = deque()
 
     # --- Step 1: Smooth Images ---
     process_images_in_folder(INPUT_FOLDER, STEP1_OUTPUT_FOLDER, task_smooth_image,

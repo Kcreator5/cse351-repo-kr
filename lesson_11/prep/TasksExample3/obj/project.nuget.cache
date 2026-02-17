@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "rdZ82Uz1o/U=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\kgame\\OneDrive\\Documents\\GitHub\\Concurrency\\cse351-student-version-main\\lesson_11\\prep\\TasksExample3\\TasksExample3.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\kgame\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.15\\microsoft.netcore.app.ref.8.0.15.nupkg.sha512",
+    "C:\\Users\\kgame\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.15\\microsoft.windowsdesktop.app.ref.8.0.15.nupkg.sha512",
+    "C:\\Users\\kgame\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.15\\microsoft.aspnetcore.app.ref.8.0.15.nupkg.sha512",
+    "C:\\Users\\kgame\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.15\\microsoft.netcore.app.host.win-x64.8.0.15.nupkg.sha512"
+  ],
+  "logs": []
+}
