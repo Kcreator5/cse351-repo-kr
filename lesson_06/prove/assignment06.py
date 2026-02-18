@@ -27,6 +27,8 @@ GAUSSIAN_BLUR_KERNEL_SIZE = (5, 5)
 CANNY_THRESHOLD1 = 75
 CANNY_THRESHOLD2 = 155
 
+SENTINEL = None
+
 # Allowed image extensions
 ALLOWED_EXTENSIONS = ['.jpg']
 
@@ -35,6 +37,69 @@ def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
         print(f"Created folder: {folder_path}")
+
+# --------------------------------------------------------------------------- New stuff
+def worker_smooth(q_in_files, q_out_imgs, kernel_size):
+    create_folder_if_not_exists(STEP1_OUTPUT_FOLDER)
+    """
+    Reads filenames, loads images, smooths them, saves step1 output,
+    and passes (filename, smoothed_image) to the next stage.
+    """
+
+    while True:
+        filename = q_in_files.get()
+        if filename is SENTINEL:
+            # Tell next stage to stop too
+            q_out_imgs.put(SENTINEL)
+            break
+
+        input_path = os.path.join(INPUT_FOLDER, filename)
+        img = cv2.imread(input_path)
+        if img is None:
+            print(f"Warning: Could not read image '{input_path}'. Skipping.")
+            continue
+
+        smoothed = task_smooth_image(img, kernel_size)
+        cv2.imwrite(os.path.join(STEP1_OUTPUT_FOLDER, filename), smoothed)
+
+        # pass forward in-memory to reduce re-reads
+        q_out_imgs.put((filename, smoothed))
+
+
+def worker_grayscale(q_in_imgs, q_out_gray):
+    """
+    Receives (filename, image), converts to grayscale, saves step2 output,
+    and passes (filename, grayscale_image) to the next stage.
+    """
+    create_folder_if_not_exists(STEP2_OUTPUT_FOLDER)
+
+    while True:
+        item = q_in_imgs.get()
+        if item is SENTINEL:
+            q_out_gray.put(SENTINEL)
+            break
+
+        filename, img = item
+        gray = task_convert_to_grayscale(img)
+        cv2.imwrite(os.path.join(STEP2_OUTPUT_FOLDER, filename), gray)
+
+        q_out_gray.put((filename, gray))
+
+
+def worker_edges(q_in_gray, threshold1, threshold2):
+    """
+    Receives (filename, grayscale_image), runs Canny, saves step3 output.
+    """
+    create_folder_if_not_exists(STEP3_OUTPUT_FOLDER)
+
+    while True:
+        item = q_in_gray.get()
+        if item is SENTINEL:
+            break
+
+        filename, gray = item
+        edges = task_detect_edges(gray, threshold1, threshold2)
+        cv2.imwrite(os.path.join(STEP3_OUTPUT_FOLDER, filename), edges)
 
 # ---------------------------------------------------------------------------
 def task_convert_to_grayscale(image):
@@ -112,7 +177,42 @@ def run_image_processing_pipeline():
     # - you are free to change anything in the program as long as you
     #   do all requirements.
 
-    # queue = deque()
+    # 1) Build list of input .jpg files
+    files = []
+    for filename in os.listdir(INPUT_FOLDER):
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in ALLOWED_EXTENSIONS:
+            files.append(filename)
+
+    if not files:
+        print(f"No {ALLOWED_EXTENSIONS} files found in '{INPUT_FOLDER}'.")
+        return
+
+    # 2) Create queues between stages
+    q_files = mp.Queue(maxsize=10)   # filenames -> smooth
+    q_imgs  = mp.Queue(maxsize=10)   # smoothed images -> grayscale
+    q_gray  = mp.Queue(maxsize=10)   # grayscale images -> edges
+
+    # 3) Start the 3 processes (one per stage)
+    p1 = mp.Process(target=worker_smooth,   args=(q_files, q_imgs, GAUSSIAN_BLUR_KERNEL_SIZE))
+    p2 = mp.Process(target=worker_grayscale,args=(q_imgs, q_gray))
+    p3 = mp.Process(target=worker_edges,    args=(q_gray, CANNY_THRESHOLD1, CANNY_THRESHOLD2))
+
+    p1.start()
+    p2.start()
+    p3.start()
+
+    # 4) Feed filenames into stage 1
+    for f in files:
+        q_files.put(f)
+
+    # 5) Stop the pipeline: send ONE sentinel to stage 1
+    q_files.put(SENTINEL)
+
+    # 6) Wait for all processes to finish
+    p1.join()
+    p2.join()
+    p3.join()
 
     # --- Step 1: Smooth Images ---
     process_images_in_folder(INPUT_FOLDER, STEP1_OUTPUT_FOLDER, task_smooth_image,
