@@ -170,14 +170,9 @@ def process_images_in_folder(input_folder,              # input folder with imag
 def run_image_processing_pipeline():
     print("Starting image processing pipeline...")
 
-    # TODO
-    # - create queues
-    # - create barriers
-    # - create the three processes groups
-    # - you are free to change anything in the program as long as you
-    #   do all requirements.
+   
 
-    # 1) Build list of input .jpg files
+    #1 Build list of input .jpg files
     files = []
     for filename in os.listdir(INPUT_FOLDER):
         ext = os.path.splitext(filename)[1].lower()
@@ -188,12 +183,12 @@ def run_image_processing_pipeline():
         print(f"No {ALLOWED_EXTENSIONS} files found in '{INPUT_FOLDER}'.")
         return
 
-    # 2) Create queues between stages
+    #2 Create queues for the between stages
     q_files = mp.Queue(maxsize=10)   # filenames -> smooth
     q_imgs  = mp.Queue(maxsize=10)   # smoothed images -> grayscale
     q_gray  = mp.Queue(maxsize=10)   # grayscale images -> edges
 
-    # 3) Start the 3 processes (one per stage)
+    #3 Start the 3 processes (one per stage)
     p1 = mp.Process(target=worker_smooth,   args=(q_files, q_imgs, GAUSSIAN_BLUR_KERNEL_SIZE))
     p2 = mp.Process(target=worker_grayscale,args=(q_imgs, q_gray))
     p3 = mp.Process(target=worker_edges,    args=(q_gray, CANNY_THRESHOLD1, CANNY_THRESHOLD2))
@@ -202,18 +197,19 @@ def run_image_processing_pipeline():
     p2.start()
     p3.start()
 
-    # 4) Feed filenames into stage 1
+    #4 Feed filenames into stage 1
     for f in files:
         q_files.put(f)
 
-    # 5) Stop the pipeline: send ONE sentinel to stage 1
+    # 5 Stop the pipeline: send one sentinel to stage 1
     q_files.put(SENTINEL)
 
-    # 6) Wait for all processes to finish
+    #6 Wait for all processes to finish
     p1.join()
     p2.join()
     p3.join()
 
+    '''
     # --- Step 1: Smooth Images ---
     process_images_in_folder(INPUT_FOLDER, STEP1_OUTPUT_FOLDER, task_smooth_image,
                              processing_args=(GAUSSIAN_BLUR_KERNEL_SIZE,))
@@ -225,6 +221,7 @@ def run_image_processing_pipeline():
     process_images_in_folder(STEP2_OUTPUT_FOLDER, STEP3_OUTPUT_FOLDER, task_detect_edges,
                              load_args=cv2.IMREAD_GRAYSCALE,        
                              processing_args=(CANNY_THRESHOLD1, CANNY_THRESHOLD2))
+    '''
 
     print("\nImage processing pipeline finished!")
     print(f"Original images are in: '{INPUT_FOLDER}'")
