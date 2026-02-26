@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ConcurrentStackExample")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b585c2dc77c6c1c8d8956158d102cb55d4eed188")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a0ec81345ed5c0c7b9534e86d6e565eb8b14f127")]
 [assembly: System.Reflection.AssemblyProductAttribute("ConcurrentStackExample")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ConcurrentStackExample")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
