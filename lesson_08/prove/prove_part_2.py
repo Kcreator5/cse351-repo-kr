@@ -2,7 +2,7 @@
 Course: CSE 351 
 Assignment: 08 Prove Part 2
 File:   prove_part_2.py
-Author: <Add name here>
+Author: Kevin Rogers
 
 Purpose: Part 2 of assignment 8, finding the path to the end of a maze using recursion.
 
@@ -21,11 +21,11 @@ position:
 
 What would be your strategy?
 
-<Answer here>
+<I think I would want to alter the code so the shortest path is displaded in one color. My strategy would be alter that path after the rout is found and change it into one color.
 
 Why would it work?
 
-<Answer here>
+<With the thread alternating colors so freaquently it would be difficult to keep the colors the same, but it would be posible. I think I would just need to figure out the way to have the color keep it's privious color.
 
 """
 
@@ -84,9 +84,11 @@ def get_color():
 
 def solve_find_end(maze):
 
+    global stop
+    stop = False
+
     def thred_search(row, col, color):
         global stop
-        stop = False
 
         if stop:
             return
@@ -99,15 +101,21 @@ def solve_find_end(maze):
 
         moves = maze.get_possible_moves(row, col)
 
-        threads = []
+        if len(moves) == 1:
+            row, col = moves[0]
+            thred_search(row, col, color)
 
-        for r, c in moves:
-            t = threading.Thread(target=thred_search, args=(r, c, color))
-            t.start()
-            threads.append(t)
+        elif len(moves) > 1:
+            threads = []
 
-        for t in threads:
-            t.join()
+            for row, col in moves:
+                new_color = get_color()
+                t = threading.Thread(target=thred_search, args=(row, col, new_color))
+                t.start()
+                threads.append(t)
+
+            for t in threads:
+                t.join()
 
 
     start_row, start_col = maze.get_start_pos()
