@@ -24,19 +24,38 @@ from cse351 import *
 
 SCREEN_SIZE = 800
 COLOR = (0, 0, 255)
-SLOW_SPEED = 100
+SLOW_SPEED = 80
 FAST_SPEED = 1
 speed = SLOW_SPEED
 
 # TODO: Add any functions needed here.
 
 def solve_path(maze):
-    """ Solve the maze and return the path found between the start and end positions.  
-        The path is a list of positions, (x, y) """
-    path = []
-    # TODO: Solve the maze recursively while tracking the correct path.
 
-    # Hint: You can create an inner function to do the recursion
+    path = []
+
+    def depth_search(row, col):
+
+        if maze.at_end(row, col):
+            path.append((row, col))
+            return True
+
+        maze.move(row, col, COLOR)
+
+        moves = maze.get_possible_moves(row, col)
+
+        for row, col in moves:
+            if depth_search(row, col):
+                path.append((row, col))
+                return True
+            
+        # commenting this out makes it go faster.
+        # maze.restore(row, col) 
+        return False
+
+
+    start_row, start_col = maze.get_start_pos()
+    depth_search(start_row, start_col)
 
     return path
 

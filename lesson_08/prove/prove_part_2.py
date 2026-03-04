@@ -59,7 +59,7 @@ COLORS = (
     (226,138,43),
     (128,114,250)
 )
-SLOW_SPEED = 100
+SLOW_SPEED = 10
 FAST_SPEED = 0
 
 # Globals
@@ -81,11 +81,40 @@ def get_color():
 # TODO: Add any function(s) you need, if any, here.
 
 
+
 def solve_find_end(maze):
-    """ Finds the end position using threads. Nothing is returned. """
-    # When one of the threads finds the end position, stop all of them.
-    global stop
-    stop = False
+
+    def thred_search(row, col, color):
+        global stop
+        stop = False
+
+        if stop:
+            return
+
+        maze.move(row, col, color)
+
+        if maze.at_end(row, col):
+            stop = True
+            return
+
+        moves = maze.get_possible_moves(row, col)
+
+        threads = []
+
+        for r, c in moves:
+            t = threading.Thread(target=thred_search, args=(r, c, color))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+
+    start_row, start_col = maze.get_start_pos()
+
+    t = threading.Thread(target=thred_search, args=(start_row, start_col, get_color()))
+    t.start()
+    t.join()
 
 
 
