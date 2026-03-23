@@ -56,64 +56,103 @@ Extra (Optional) 10% Bonus to speed up part 3
 <Add your comments here>
 
 """
+
 from common import *
 import queue
+import threading
 
 # -----------------------------------------------------------------------------
 def depth_fs_pedigree(family_id, tree):
-    # KEEP this function even if you don't implement it
-    # TODO - implement Depth first retrieval
-    # Keep track of visited families to avoid cycles
+
     visited_families = set()
-    
-    def _dfs_recursive(fam_id):
-        # Base case: if already visited or None, stop
-        if fam_id is None or fam_id in visited_families:
+    visited_people = set()
+
+    lock = threading.Lock()
+
+    def dfs(fam_id):
+        if fam_id is None:
             return
+
+        # Prevent duplicate work
+        with lock:
+            if fam_id in visited_families:
+                return
+            visited_families.add(fam_id)
+
         
-        visited_families.add(fam_id)
+        # 1. Get family from server
         
-        # Request family data from server
         family_data = get_data_from_server(f'{TOP_API_URL}/family/{fam_id}')
         if family_data is None:
             return
-        
-        # Create Family object and add to tree
+
         family = Family(family_data)
         tree.add_family(family)
-        print(f'Retrieved family: {fam_id}')
-        
-        # Request husband and wife data
-        husband_data = get_data_from_server(f'{TOP_API_URL}/person/{family.get_husband()}')
-        if husband_data:
-            husband = Person(husband_data)
-            tree.add_person(husband)
-            print(f'Retrieved person: {husband.get_name()}')
-            # Recurse on husband's parents
-            _dfs_recursive(husband.get_parentid())
-        
-        wife_data = get_data_from_server(f'{TOP_API_URL}/person/{family.get_wife()}')
-        if wife_data:
-            wife = Person(wife_data)
-            tree.add_person(wife)
-            print(f'Retrieved person: {wife.get_name()}')
-            # Recurse on wife's parents
-            _dfs_recursive(wife.get_parentid())
-        
-        # Process children
+
+        threads = []
+
+
+        # 2. Fetch people
+
+        def fetch_person(person_id):
+            if person_id is None:
+                return None
+
+            with lock:
+                if person_id in visited_people:
+                    return None
+                visited_people.add(person_id)
+
+            data = get_data_from_server(f'{TOP_API_URL}/person/{person_id}')
+            if data is None:
+                return None
+
+            person = Person(data)
+            tree.add_person(person)
+            return person
+
+        # Husband thread
+        t1 = threading.Thread(target=fetch_person, args=(family.get_husband(),))
+        threads.append(t1)
+        t1.start()
+
+        # Wife thread
+        t2 = threading.Thread(target=fetch_person, args=(family.get_wife(),))
+        threads.append(t2)
+        t2.start()
+
+        # Children threads
         for child_id in family.get_children():
-            child_data = get_data_from_server(f'{TOP_API_URL}/person/{child_id}')
-            if child_data:
-                child = Person(child_data)
-                tree.add_person(child)
-                print(f'Retrieved person: {child.get_name()}')
-    
-    # Start DFS from the initial family
-    _dfs_recursive(family_id)
+            t = threading.Thread(target=fetch_person, args=(child_id,))
+            threads.append(t)
+            t.start()
 
-    # TODO - Printing out people and families that are retrieved from the server will help debugging
+        # Wait for all person fetches
+        for t in threads:
+            t.join()
 
-    pass
+        # 3. Recurse to parents
+
+        # Need actual person objects from tree
+        husband = tree.get_person(family.get_husband())
+        wife = tree.get_person(family.get_wife())
+
+        parent_threads = []
+
+        if husband is not None:
+            parent_threads.append(t)
+            threading.Thread(target=dfs, args=(husband.get_parentid(),)).start()
+
+        if wife is not None:
+            parent_threads.append(t)
+            threading.Thread(target=dfs, args=(wife.get_parentid(),)).start()
+
+        # Wait for recursion threads
+        for t in parent_threads:
+            t.join()
+
+    # Start DFS
+    dfs(family_id)
 
 # -----------------------------------------------------------------------------
 def breadth_fs_pedigree(family_id, tree):
