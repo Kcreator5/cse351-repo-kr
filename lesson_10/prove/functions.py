@@ -37,19 +37,20 @@ Example JSON returned from the server
     'family_id': 6128784944    # use with the Family API
 }
 
-
 --------------------------------------------------------------------------------------
 You will lose 10% if you don't detail your part 1 and part 2 code below
 
 Describe how to speed up part 1
 
-<Add your comments here>
+<First off, I would argure that in order to speed UP something, that something would have to exist and WORK in the first place. 
 
+The main way to speed up part 1 is to use threads to fetch the husband, wife, and children. 
+This way we can make multiple calls at the same time instead of waiting for each one to finish before starting the next.>
 
 Describe how to speed up part 2
 
-<Add your comments here>
-
+<For part 2, we can also use threads to fetch the next level of families. 
+This way we can continue to fetch multiple families at the same time instead of waiting for each one to finish before starting the next.>
 
 Extra (Optional) 10% Bonus to speed up part 3
 
@@ -90,7 +91,6 @@ def depth_fs_pedigree(family_id, tree):
         tree.add_family(family)
 
         threads = []
-
 
         # 2. Fetch people
 
@@ -140,12 +140,14 @@ def depth_fs_pedigree(family_id, tree):
         parent_threads = []
 
         if husband is not None:
+            t = threading.Thread(target=dfs, args=(husband.get_parentid(),))
             parent_threads.append(t)
-            threading.Thread(target=dfs, args=(husband.get_parentid(),)).start()
+            t.start()
 
         if wife is not None:
+            t= threading.Thread(target=dfs, args=(wife.get_parentid(),))
             parent_threads.append(t)
-            threading.Thread(target=dfs, args=(wife.get_parentid(),)).start()
+            t.start()
 
         # Wait for recursion threads
         for t in parent_threads:
@@ -156,11 +158,93 @@ def depth_fs_pedigree(family_id, tree):
 
 # -----------------------------------------------------------------------------
 def breadth_fs_pedigree(family_id, tree):
-    # KEEP this function even if you don't implement it
-    # TODO - implement breadth first retrieval
-    # TODO - Printing out people and families that are retrieved from the server will help debugging
 
-    pass
+    q = queue.Queue()
+
+    visited_families = set()
+    visited_people = set()
+
+    lock = threading.Lock()
+
+    q.put(family_id)
+
+    while not q.empty():
+        fam_id = q.get()
+
+        if fam_id is None:
+            continue
+
+        # Prevent duplicate families
+
+        with lock:
+            if fam_id in visited_families:
+                continue
+            visited_families.add(fam_id)
+
+        # Get family from server
+
+        family_data = get_data_from_server(f'{TOP_API_URL}/family/{fam_id}')
+        if family_data is None:
+            continue
+
+        family = Family(family_data)
+        tree.add_family(family)
+
+        threads = []
+
+        # Fetch all individuals
+
+        def fetch_person(person_id):
+            if person_id is None:
+                return
+
+            with lock:
+                if person_id in visited_people:
+                    return
+                visited_people.add(person_id)
+
+            data = get_data_from_server(f'{TOP_API_URL}/person/{person_id}')
+            if data is None:
+                return
+
+            person = Person(data)
+            tree.add_person(person)
+
+        # father
+        t = threading.Thread(target=fetch_person, args=(family.get_husband(),))
+        threads.append(t)
+        t.start()
+
+        # mother
+        t = threading.Thread(target=fetch_person, args=(family.get_wife(),))
+        threads.append(t)
+        t.start()
+
+        # children
+        for child_id in family.get_children():
+            t = threading.Thread(target=fetch_person, args=(child_id,))
+            threads.append(t)
+            t.start()
+
+        # Waiting for all to finish
+        for t in threads:
+            t.join()
+
+
+        # Add next parents
+
+        husband = tree.get_person(family.get_husband())
+        wife = tree.get_person(family.get_wife())
+
+        if husband is not None:
+            parent_id = husband.get_parentid()
+            if parent_id is not None:
+                q.put(parent_id)
+
+        if wife is not None:
+            parent_id = wife.get_parentid()
+            if parent_id is not None:
+                q.put(parent_id)
 
 # -----------------------------------------------------------------------------
 def breadth_fs_pedigree_limit5(family_id, tree):
