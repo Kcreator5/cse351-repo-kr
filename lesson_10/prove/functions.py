@@ -1,7 +1,7 @@
 """
 Course: CSE 351, week 10
 File: functions.py
-Author: <your name>
+Author: Kevin
 
 Instructions:
 
@@ -63,6 +63,54 @@ import queue
 def depth_fs_pedigree(family_id, tree):
     # KEEP this function even if you don't implement it
     # TODO - implement Depth first retrieval
+    # Keep track of visited families to avoid cycles
+    visited_families = set()
+    
+    def _dfs_recursive(fam_id):
+        # Base case: if already visited or None, stop
+        if fam_id is None or fam_id in visited_families:
+            return
+        
+        visited_families.add(fam_id)
+        
+        # Request family data from server
+        family_data = get_data_from_server(f'{TOP_API_URL}/family/{fam_id}')
+        if family_data is None:
+            return
+        
+        # Create Family object and add to tree
+        family = Family(family_data)
+        tree.add_family(family)
+        print(f'Retrieved family: {fam_id}')
+        
+        # Request husband and wife data
+        husband_data = get_data_from_server(f'{TOP_API_URL}/person/{family.get_husband()}')
+        if husband_data:
+            husband = Person(husband_data)
+            tree.add_person(husband)
+            print(f'Retrieved person: {husband.get_name()}')
+            # Recurse on husband's parents
+            _dfs_recursive(husband.get_parentid())
+        
+        wife_data = get_data_from_server(f'{TOP_API_URL}/person/{family.get_wife()}')
+        if wife_data:
+            wife = Person(wife_data)
+            tree.add_person(wife)
+            print(f'Retrieved person: {wife.get_name()}')
+            # Recurse on wife's parents
+            _dfs_recursive(wife.get_parentid())
+        
+        # Process children
+        for child_id in family.get_children():
+            child_data = get_data_from_server(f'{TOP_API_URL}/person/{child_id}')
+            if child_data:
+                child = Person(child_data)
+                tree.add_person(child)
+                print(f'Retrieved person: {child.get_name()}')
+    
+    # Start DFS from the initial family
+    _dfs_recursive(family_id)
+
     # TODO - Printing out people and families that are retrieved from the server will help debugging
 
     pass
