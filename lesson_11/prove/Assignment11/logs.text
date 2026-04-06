@@ -1,0 +1,8 @@
+Defalt: Numbers processed = 1000000
+Primes found      = 43427
+Total time        = 00:00:09.7874666
+
+Final Improvment: 
+Numbers processed = 1000000
+Primes found      = 43427
+Total time        = 00:00:03.0753909
